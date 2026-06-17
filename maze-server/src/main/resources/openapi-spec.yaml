@@ -1,0 +1,452 @@
+openapi: 3.1.0
+
+info:
+  title: Maze Challenge API
+  version: 1.1.0
+  description: |
+    API for Maze Challenge.
+
+    Kort om flyt:
+    1. Opprett spiller med `POST /game`.
+    2. Hent labyrint og spillere for frontend med `GET /gamecontrol/maze` og `GET /gamecontrol/players`.
+    3. Flytt spiller stegvis med `POST /game/{playerId}/move`.
+    4. Hent synsfelt med `GET /game/{playerId}/view`.
+    5. Sjekk målstatus med `GET /game/{playerId}/status`.
+    6. (Valgfritt) Publiser spillerens oppdagede kart med `POST /game/{playerId}/discovered-map`.
+    7. Serveren beregner automatisk antall returtrekk fra mål tilbake til start og eksponerer dette i spillerlisten.
+
+servers:
+  - url: http://localhost:8080
+    description: Lokal utviklingsserver
+
+tags:
+  - name: Game
+    description: Spillopprettelse, spillerliste og labyrintdata.
+  - name: Player
+    description: Spillerhandlinger som bevegelse, status og synsfelt.
+  - name: Discovery
+    description: Oppdaget kart rapportert fra maze-player.
+
+paths:
+
+  /game:
+    post:
+      tags: [Game]
+      summary: Registrer ny spiller
+      description: |
+        Oppretter en ny spiller i aktivt spill og returnerer tildelt `playerId`.
+        Spillernavn er valgfritt. Hvis navn ikke oppgis, genereres et standardnavn.
+      operationId: createGame
+      parameters:
+        - in: query
+          name: name
+          required: false
+          description: Spillernavn (maks 10 tegn).
+          schema:
+            type: string
+            maxLength: 10
+            example: Bot1
+      responses:
+        "200":
+          description: Spiller opprettet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameCreated"
+              examples:
+                created:
+                  value:
+                    playerId: "1"
+        "400":
+          description: Ugyldig input, f.eks. navn over 10 tegn.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Spillet er fullt (maks 6 spillere).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+
+  /gamecontrol/players:
+    get:
+      tags: [Game]
+      summary: Hent alle registrerte spillere (frontend)
+      description: |
+        Returnerer alle spillere for maze-frontend med:
+        - nåværende posisjon
+        - antall trekk totalt (`moveCount`)
+        - antall trekk brukt på retur fra mål til start (`returnMoveCount`, hvis registrert)
+      operationId: frontendGetPlayers
+      responses:
+        "200":
+          description: Liste over spillere.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlayerResponse"
+
+  /gamecontrol/maze:
+    get:
+      tags: [Game]
+      summary: Hent labyrintdata
+      description: |
+        Returnerer full labyrint med størrelse og layout.
+        `layout` er en liste av strenger der hvert tegn representerer en celle:
+        - `#` = vegg
+        - ` ` = gulv
+        - `S` = start
+        - `E` = utgang
+      operationId: frontendGetMaze
+      responses:
+        "200":
+          description: Labyrintdata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MazeResponse"
+
+  /game/{playerId}/view:
+    get:
+      tags: [Player]
+      summary: Hent synsfelt for spiller
+      description: |
+        Returnerer fire stråler (`north`, `south`, `east`, `west`) fra spillerens nåværende posisjon.
+        Hver stråle inneholder celler fra nærmeste til fjerneste retning.
+        Strålen stopper ved første vegg (`#`) og inkluderer veggen.
+      operationId: getView
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+      responses:
+        "200":
+          description: Synsfeltdata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ViewResponse"
+              examples:
+                sample:
+                  value:
+                    north: [" ", " ", "#"]
+                    south: [" "]
+                    east: [" ", "#"]
+                    west: ["#"]
+        "404":
+          description: Spiller ikke funnet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /game/{playerId}/move:
+    post:
+      tags: [Player]
+      summary: Flytt spiller ett steg
+      description: |
+        Flytter spilleren ett steg i ønsket retning (`NORTH`, `SOUTH`, `EAST`, `WEST`).
+        Dersom trekket er ugyldig (f.eks. vegg), returneres `success: false`.
+      operationId: movePlayer
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveRequest"
+            examples:
+              moveNorth:
+                value:
+                  direction: NORTH
+      responses:
+        "200":
+          description: Resultat av trekket.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoveResponse"
+              examples:
+                moved:
+                  value:
+                    success: true
+                blocked:
+                  value:
+                    success: false
+        "404":
+          description: Spiller ikke funnet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /game/{playerId}/status:
+    get:
+      tags: [Player]
+      summary: Hent målstatus for spiller
+      description: Returnerer om spilleren har nådd utgangen.
+      operationId: getStatus
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+      responses:
+        "200":
+          description: Spillstatus.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameStatus"
+              examples:
+                inProgress:
+                  value:
+                    escaped: false
+                escaped:
+                  value:
+                    escaped: true
+        "404":
+          description: Spiller ikke funnet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /game/{playerId}/discovered-map:
+    post:
+      tags: [Discovery]
+      summary: Oppdater oppdaget kart for spiller
+      description: |
+        Tar imot spillerens lokalt oppdagede kart og lagrer det server-side.
+        Klienten sender relative koordinater med `(0,0)` ved START.
+        Serveren konverterer til absolutte maze-koordinater internt.
+      operationId: updateDiscoveredMap
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiscoveredMapRequest"
+            examples:
+              sample:
+                value:
+                  tiles:
+                    - { x: 0, y: 0, tile: START }
+                    - { x: 0, y: -1, tile: FLOOR }
+                    - { x: 1, y: -1, tile: WALL }
+      responses:
+        "200":
+          description: Oppdaget kart oppdatert.
+        "404":
+          description: Spiller ikke funnet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /gamecontrol/{playerId}/discovered-map:
+    get:
+      tags: [Discovery]
+      summary: Hent oppdaget kart for spiller (frontend)
+      description: |
+        Returnerer det oppdagede kartet som serveren har lagret for spilleren.
+        Koordinatene i responsen er absolutte maze-koordinater.
+      operationId: frontendGetDiscoveredMap
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+      responses:
+        "200":
+          description: Oppdaget kart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoveredMapResponse"
+        "404":
+          description: Spiller ikke funnet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  parameters:
+    PlayerId:
+      in: path
+      name: playerId
+      required: true
+      description: Unik ID for spiller.
+      schema:
+        type: integer
+        minimum: 1
+
+  schemas:
+
+    GameCreated:
+      type: object
+      required: [playerId]
+      properties:
+        playerId:
+          type: string
+          description: Spiller-ID som streng (kan konverteres til Int i klient).
+          example: "1"
+
+    MoveRequest:
+      type: object
+      required: [direction]
+      properties:
+        direction:
+          $ref: "#/components/schemas/Direction"
+
+    MoveResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          description: `false` hvis trekket er blokkert eller ugyldig.
+
+    GameStatus:
+      type: object
+      required: [escaped]
+      properties:
+        escaped:
+          type: boolean
+          description: `true` når spiller står på utgangscellen.
+
+    ViewResponse:
+      type: object
+      description: |
+        Retningsstråler fra spillerens posisjon.
+        Hvert element er en enkelt cellekode (`#`, ` `, `S`, `E`).
+      required: [north, south, east, west]
+      properties:
+        north:
+          type: array
+          items: { type: string }
+        south:
+          type: array
+          items: { type: string }
+        east:
+          type: array
+          items: { type: string }
+        west:
+          type: array
+          items: { type: string }
+
+    Position:
+      type: object
+      required: [first, second]
+      properties:
+        first:
+          type: integer
+          description: x-koordinat (0 = venstre kant)
+        second:
+          type: integer
+          description: y-koordinat (0 = topp)
+
+    PlayerResponse:
+      type: object
+      required: [id, name, color, position, moveCount]
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: MazeBot
+        color:
+          type: string
+          description: En av `red`, `blue`, `green`, `yellow`, `purple`, `orange`.
+        position:
+          $ref: "#/components/schemas/Position"
+        moveCount:
+          type: integer
+          minimum: 0
+          description: Totalt antall vellykkede flyttinger for spilleren.
+        returnMoveCount:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: Antall trekk brukt fra mål tilbake til START (hvis registrert).
+
+    MazeResponse:
+      type: object
+      required: [width, height, layout, startPosition, exitPosition]
+      properties:
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+        layout:
+          type: array
+          items:
+            type: string
+          description: Én streng per rad. Celler representeres av `#`, ` `, `S`, `E`.
+        startPosition:
+          $ref: "#/components/schemas/Position"
+        exitPosition:
+          $ref: "#/components/schemas/Position"
+
+    DiscoveredTile:
+      type: object
+      required: [x, y, tile]
+      properties:
+        x:
+          type: integer
+          description: X-koordinat.
+        y:
+          type: integer
+          description: Y-koordinat.
+        tile:
+          type: string
+          enum: [UNKNOWN, WALL, FLOOR, START, GOAL]
+
+    DiscoveredMapRequest:
+      type: object
+      required: [tiles]
+      properties:
+        tiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoveredTile"
+
+    DiscoveredMapResponse:
+      type: object
+      required: [playerId, tiles]
+      properties:
+        playerId:
+          type: integer
+        tiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoveredTile"
+
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          example: "2026-06-10T16:19:31.728+00:00"
+        status:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: Not Found
+        message:
+          type: string
+          example: Player not found
+        path:
+          type: string
+          example: /game/999/status
+
+    Direction:
+      type: string
+      enum: [NORTH, SOUTH, EAST, WEST]
+
