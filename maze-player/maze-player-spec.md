@@ -16,7 +16,7 @@ Bruk API´et til å flytte spilleren rundt i labyrinten.
 Hvert trekk gir tilbake informasjon om hvilke retninger som er åpne
 
 ## Oppgave 3
-Start automatisk utforsking av labyri[maze-player-spec.md](maze-player-spec.md)nten.
+Start automatisk utforsking av labyrinten.
 Bygg opp et internt kart over oppdagede områder i labyrinten.
 
 ## Oppgave 4
