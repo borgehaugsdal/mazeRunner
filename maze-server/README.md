@@ -1,113 +1,63 @@
 # Maze Challenge Backend
 
-This project is a backend server for a Maze Challenge built using Kotlin and Spring Boot. The server allows multiple players to connect and navigate through a maze in real-time.
+Dette prosjektet er en backend-server for Maze Challenge, 100% Vibe kodet med Kotlin og Spring Boot.
+Serveren gjør det mulig for flere spillere å koble seg til og navigere gjennom en labyrint i sanntid.
+Serveren er kodet i Kotlin, men det er ingenting i veien for å lage en utgave i andre språk. 
 
-## Project Structure
+## Kom i gang
+Jo mer tydelig spesifikasjon er, jo færre tokens antas det at KI bruker på å generere koden.
 
-The project is organized as follows:
 
-```
-maze-server
-├── src
-│   ├── main
-│   │   ├── kotlin
-│   │   │   └── com
-│   │   │       └── mazechallenge
-│   │   │           ├── MazeServerApplication.kt
-│   │   │           ├── config
-│   │   │           │   ├── WebSocketConfig.kt
-│   │   │           │   └── OpenApiConfig.kt
-│   │   │           ├── controller
-│   │   │           │   ├── GameController.kt
-│   │   │           │   └── PlayerController.kt
-│   │   │           ├── service
-│   │   │           │   ├── GameService.kt
-│   │   │           │   ├── PlayerService.kt
-│   │   │           │   └── MazeService.kt
-│   │   │           ├── domain
-│   │   │           │   ├── Player.kt
-│   │   │           │   ├── Maze.kt
-│   │   │           │   └── GameState.kt
-│   │   │           ├── mapper
-│   │   │           │   ├── PlayerMapper.kt
-│   │   │           │   └── MazeMapper.kt
-│   │   │           └── websocket
-│   │   │               ├── GameWebSocketHandler.kt
-│   │   │               └── GameStateMessage.kt
-│   │   └── resources
-│   │       ├── application.properties
-│   │       ├── Maze1.txt
-│   │       ├── Maze2.txt
-│   │       └── templates
-│   │           └── index.html
-│   └── test
-│       └── kotlin
-│           └── com
-│               └── mazechallenge
-│                   ├── service
-│                   │   ├── GameServiceTest.kt
-│                   │   ├── PlayerServiceTest.kt
-│                   │   └── MazeServiceTest.kt
-│                   ├── controller
-│                   │   └── GameControllerTest.kt
-│                   └── integration
-│                       └── GameIntegrationTest.kt
-├── build.gradle.kts
-├── settings.gradle.kts
-└── README.md
-```
+### Forutsetninger
 
-## Getting Started
-
-### Prerequisites
-
-- Kotlin 1.6 or higher
+- Kotlin 1.6 eller nyere
 - Java 21
-- Gradle 7.0 or higher
+- Gradle 7.0 eller nyere
 
-### Installation
+### Installasjon
 
-1. Clone the repository:
-   ```
-   git clone <repository-url>
+1. Klon repositoriet:
+   ```bash
+   git clone https://github.com/borgehaugsdal/mazeRunner/tree/main
    ```
 
-2. Navigate to the project directory:
-   ```
+2. Gå til prosjektmappen:
+   ```bash
    cd maze-server
    ```
 
-3. Build the project using Gradle:
-   ```
+3. Bygg prosjektet med Gradle:
+   ```bash
    ./gradlew build
    ```
 
-4. Run the application:
-   ```
+4. Start applikasjonen:
+   ```bash
    ./gradlew bootRun
    ```
 
-### Usage
+## Bruk
 
-- Connect to the WebSocket endpoint to join the game.
-- Players can register with a name and will be assigned a unique identifier.
-- Players can navigate through the maze using the provided controls in the frontend.
+- Koble til WebSocket-endepunktet for å bli med i spillet.
+- Spillere kan registrere seg med et navn og får tildelt en unik identifikator.
+- Spillere kan navigere gjennom labyrinten ved hjelp av kontrollene i frontend-applikasjonen.
 
-### API Documentation
+## API-dokumentasjon
 
-API specifications are automatically generated using OpenAPI. You can access the documentation at `/v3/api-docs`.
+API-spesifikasjonene genereres automatisk ved hjelp av OpenAPI. Dokumentasjonen er tilgjengelig på `/v3/api-docs`.
 
-### Testing
+## Testing
 
-Unit and integration tests are included in the project. To run the tests, use the following command:
-```
+Prosjektet inneholder både enhetstester og integrasjonstester. Kjør testene med følgende kommando:
+
+```bash
 ./gradlew test
 ```
 
-## Contributing
+## Bidrag
 
-Contributions are welcome! Please open an issue or submit a pull request for any enhancements or bug fixes.
+Bidrag er velkomne! Opprett gjerne en sak (issue) eller send inn en pull request dersom du har forslag til forbedringer eller feilrettinger.
 
-## License
+## Lisens
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+Dette prosjektet er fullstendig åpent, og til læringsformål
